@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Rajdhani, Outfit } from "next/font/google";
+import Providers from "@/components/Providers";
 import "./globals.css";
 
 const rajdhani = Rajdhani({
@@ -30,7 +31,7 @@ export default function RootLayout({
       className={`${rajdhani.variable} ${outfit.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col bg-[#050811] text-white selection:bg-yellow-400 selection:text-slate-950 font-sans antialiased overflow-x-hidden">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

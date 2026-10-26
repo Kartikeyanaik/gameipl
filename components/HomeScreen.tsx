@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { soundManager } from "@/utils/sound";
+import AuthButton from "./AuthButton";
 
 interface HomeScreenProps {
   onStart: () => void;
   budgetEnabled: boolean;
   onToggleBudget: () => void;
+  onOpenHistory?: () => void;
 }
 
 const PREVIEW_CARDS = [
@@ -16,7 +18,12 @@ const PREVIEW_CARDS = [
   { team: "KKR", year: "2012", player: "Sunil Narine", role: "AR", rating: 90, color: "#3A225D" },
 ];
 
-export default function HomeScreen({ onStart, budgetEnabled, onToggleBudget }: HomeScreenProps) {
+export default function HomeScreen({
+  onStart,
+  budgetEnabled,
+  onToggleBudget,
+  onOpenHistory,
+}: HomeScreenProps) {
   const [soundOn, setSoundOn] = useState(soundManager.enabled);
 
   const toggleSound = () => {
@@ -30,14 +37,14 @@ export default function HomeScreen({ onStart, budgetEnabled, onToggleBudget }: H
   };
 
   return (
-    <div className="min-h-screen bg-[#050811] flex flex-col justify-between items-center px-4 py-8 relative overflow-hidden select-none font-sans">
+    <div className="min-h-screen bg-[#050811] flex flex-col justify-between items-center px-4 py-6 sm:py-8 relative overflow-hidden select-none font-sans">
       {/* Stadium Atmospheric Lighting Rays */}
       <div className="absolute top-0 left-1/4 w-[600px] h-[500px] bg-gradient-to-br from-amber-500/15 via-yellow-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-[600px] h-[500px] bg-gradient-to-tl from-blue-600/15 via-indigo-600/5 to-transparent rounded-full blur-3xl pointer-events-none" />
       <div className="absolute inset-0 bg-stadium-grid opacity-30 pointer-events-none" />
 
-      {/* Top Bar with sound and mode toggle */}
-      <header className="w-full max-w-5xl flex items-center justify-between z-20">
+      {/* Top Bar with Auth and mode toggle */}
+      <header className="w-full max-w-5xl flex flex-wrap items-center justify-between gap-3 z-20">
         <div className="flex items-center gap-2.5">
           <span className="text-2xl">🏏</span>
           <span className="font-display font-black text-sm tracking-widest text-gold-gradient uppercase">
@@ -45,25 +52,37 @@ export default function HomeScreen({ onStart, budgetEnabled, onToggleBudget }: H
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {/* Salary Cap Mode Toggle */}
           <button
             onClick={onToggleBudget}
-            className={`cursor-pointer flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-display font-bold border transition-all shadow-md ${
+            className={`cursor-pointer hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-display font-bold border transition-all shadow-md ${
               budgetEnabled
                 ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
                 : "bg-slate-900/80 border-white/10 text-slate-400 hover:text-white"
             }`}
           >
-            <span>💰 SALARY CAP (₹100 Cr):</span>
+            <span>💰 SALARY CAP:</span>
             <span
-              className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+              className={`px-1.5 py-0.5 rounded text-[10px] font-black uppercase ${
                 budgetEnabled ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-300"
               }`}
             >
-              {budgetEnabled ? "ON" : "OFF"}
+              {budgetEnabled ? "₹100 Cr" : "OFF"}
             </span>
           </button>
+
+          {/* Saved Drafts Button */}
+          {onOpenHistory && (
+            <button
+              onClick={onOpenHistory}
+              className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-white/10 hover:border-yellow-400/40 text-slate-300 hover:text-white text-xs font-display font-bold uppercase transition-all shadow-md"
+              title="View past completed drafts"
+            >
+              <span>📜</span>
+              <span className="hidden md:inline">SAVED DRAFTS</span>
+            </button>
+          )}
 
           {/* Sound Toggle */}
           <button
@@ -73,6 +92,9 @@ export default function HomeScreen({ onStart, budgetEnabled, onToggleBudget }: H
           >
             {soundOn ? "🔊" : "🔇"}
           </button>
+
+          {/* Google Auth Button */}
+          <AuthButton onOpenHistory={onOpenHistory} />
         </div>
       </header>
 

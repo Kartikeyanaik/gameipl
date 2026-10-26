@@ -10,7 +10,7 @@ interface SpinWheelProps {
   onSpinComplete: (team: HistoricalTeam) => void;
   selectedTeam: HistoricalTeam | null;
   isSpinning: boolean;
-  onSpinStart: () => HistoricalTeam | null;
+  onSpinStart: () => HistoricalTeam | null | Promise<HistoricalTeam | null>;
 }
 
 // Display 10 large, readable, high-impact segments on the visual wheel
@@ -239,15 +239,20 @@ export default function SpinWheel({ onSpinComplete, isSpinning, onSpinStart }: S
     drawWheel(angleRef.current);
   }, [drawWheel]);
 
-  const handleSpin = useCallback(() => {
+  const handleSpin = useCallback(async () => {
     if (spinningRef.current || !canSpin) return;
 
-    const chosenTeam = onSpinStart();
-    if (!chosenTeam) return;
-
     setCanSpin(false);
-    spinningRef.current = true;
     setHudStatus("SPINNING");
+
+    const chosenTeam = await onSpinStart();
+    if (!chosenTeam) {
+      setCanSpin(true);
+      setHudStatus("READY");
+      return;
+    }
+
+    spinningRef.current = true;
 
     // Place the target team at index 0 of current wheel segments,
     // and populate the remaining 9 segments with diverse exciting squads

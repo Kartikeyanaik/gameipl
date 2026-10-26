@@ -5,11 +5,14 @@ import type { DraftPick, TeamScore } from "@/data/types";
 import { TEAM_COLORS } from "@/data/types";
 import { getTeamVerdict, arrangePlayersForDisplay, ROLE_COLORS, ROLE_SHORT, ROLE_ICONS } from "@/data/gameLogic";
 import { soundManager } from "@/utils/sound";
+import AuthButton from "./AuthButton";
 
 interface ResultScreenProps {
   picks: DraftPick[];
   score: TeamScore;
   onPlayAgain: () => void;
+  onHome?: () => void;
+  onOpenHistory?: () => void;
 }
 
 function ScoreBar({ label, value, color }: { label: string; value: number; color: string }) {
@@ -99,7 +102,13 @@ function FinalPlayerCard({ pick, index }: { pick: DraftPick; index: number }) {
   );
 }
 
-export default function ResultScreen({ picks, score, onPlayAgain }: ResultScreenProps) {
+export default function ResultScreen({
+  picks,
+  score,
+  onPlayAgain,
+  onHome,
+  onOpenHistory,
+}: ResultScreenProps) {
   const [viewMode, setViewMode] = useState<"pitch" | "cards">("pitch");
   const [copied, setCopied] = useState(false);
 
@@ -136,11 +145,41 @@ export default function ResultScreen({ picks, score, onPlayAgain }: ResultScreen
   };
 
   return (
-    <div className="min-h-screen bg-[#050811] text-white selection:bg-yellow-400 selection:text-slate-950 font-sans py-12 px-4 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#050811] text-white selection:bg-yellow-400 selection:text-slate-950 font-sans py-6 md:py-10 px-4 relative overflow-x-hidden">
       {/* Stadium Floodlight Radiance */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-yellow-500/15 via-amber-500/5 to-transparent blur-3xl pointer-events-none" />
 
-      <div className="max-w-5xl mx-auto space-y-10 relative z-10">
+      <div className="max-w-5xl mx-auto space-y-8 relative z-10">
+        {/* Top Navigation Bar */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          {onHome ? (
+            <button
+              onClick={onHome}
+              className="cursor-pointer flex items-center gap-2 text-xs font-display font-black text-slate-300 hover:text-yellow-400 tracking-wider uppercase transition-colors"
+            >
+              <span>←</span>
+              <span>DRAFT HOME</span>
+            </button>
+          ) : (
+            <span className="font-display font-black text-lg text-gold-gradient uppercase">
+              IPL DRAFT
+            </span>
+          )}
+
+          <div className="flex items-center gap-3">
+            {onOpenHistory && (
+              <button
+                onClick={onOpenHistory}
+                className="cursor-pointer flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900 border border-white/10 hover:border-yellow-400/40 text-slate-300 hover:text-white text-xs font-display font-bold uppercase transition-all shadow-sm"
+              >
+                <span>📜</span>
+                <span className="hidden sm:inline">SAVED DRAFTS</span>
+              </button>
+            )}
+
+            <AuthButton onOpenHistory={onOpenHistory} />
+          </div>
+        </div>
 
         {/* Hero Score Showcase */}
         <div className="text-center space-y-4 relative">

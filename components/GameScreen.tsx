@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import SpinWheel from "./SpinWheel";
 import PlayerCard from "./PlayerCard";
 import CurrentXI from "./CurrentXI";
+import AuthButton from "./AuthButton";
 import type { HistoricalTeam } from "@/data/types";
 import { TEAM_COLORS, TEAM_FULL_NAMES } from "@/data/types";
 import { getTeamComposition, getWarnings } from "@/data/gameLogic";
@@ -12,9 +13,10 @@ import { soundManager } from "@/utils/sound";
 
 interface GameScreenProps {
   gameState: ReturnType<typeof useGameState>;
+  onOpenHistory?: () => void;
 }
 
-export default function GameScreen({ gameState }: GameScreenProps) {
+export default function GameScreen({ gameState, onOpenHistory }: GameScreenProps) {
   const {
     state,
     budgetUsed,
@@ -25,7 +27,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
     resetGame,
   } = gameState;
 
-  const { picks, round, config, requirements, currentTeam, phase } = state;
+  const { picks, round, config, requirements, currentTeam, phase, errorMessage } = state;
 
   const [showPickers, setShowPickers] = useState(false);
   const [revealed, setRevealed] = useState(false);
@@ -36,13 +38,13 @@ export default function GameScreen({ gameState }: GameScreenProps) {
   const warnings = getWarnings(picks, requirements);
   const overseasFull = comp.overseas >= requirements.maxOverseas;
 
-  // Spin start trigger
-  const handleSpinStart = useCallback((): HistoricalTeam | null => {
-    const team = spinWheel(picks, state.usedTeamIds);
+  // Spin start trigger calling server-authoritative engine
+  const handleSpinStart = useCallback(async (): Promise<HistoricalTeam | null> => {
     setShowPickers(false);
     setRevealed(false);
+    const team = await spinWheel();
     return team;
-  }, [spinWheel, picks, state.usedTeamIds]);
+  }, [spinWheel]);
 
   // Spin finish trigger
   const handleSpinComplete = useCallback(
@@ -82,7 +84,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
 
       {/* Top Broadcast Scoreboard Navigation */}
       <header className="border-b border-white/10 bg-[#070b16]/90 backdrop-blur-xl sticky top-0 z-40 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           {/* Logo & Round Info */}
           <div className="flex items-center gap-4">
             <button
@@ -98,7 +100,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
             <div className="h-5 w-px bg-white/20 hidden sm:block" />
 
             <div className="hidden sm:flex items-center gap-2 font-display">
-              <span className="text-xs font-bold text-slate-400 tracking-wider">CURRENT ROUND:</span>
+              <span className="text-xs font-bold text-slate-400 tracking-wider">ROUND:</span>
               <span className="text-base font-black text-yellow-400 bg-yellow-400/10 px-2.5 py-0.5 rounded-lg border border-yellow-400/30">
                 {round} / {config.totalRounds}
               </span>
@@ -106,10 +108,10 @@ export default function GameScreen({ gameState }: GameScreenProps) {
           </div>
 
           {/* Right Action Bar */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             {/* Round Mini Pills */}
-            <div className="flex items-center gap-1 bg-slate-950/80 px-3 py-1.5 rounded-full border border-white/10 shadow-inner">
-              <span className="text-[11px] font-display font-bold text-slate-400 mr-1 sm:hidden">
+            <div className="hidden md:flex items-center gap-1 bg-slate-950/80 px-3 py-1.5 rounded-full border border-white/10 shadow-inner">
+              <span className="text-[11px] font-display font-bold text-slate-400 mr-1">
                 R{round}
               </span>
               <div className="flex gap-1">
@@ -138,8 +140,20 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                 }`}
               >
                 <span>💰</span>
-                <span>₹{budgetRemaining} Cr LEFT</span>
+                <span>₹{budgetRemaining} Cr</span>
               </div>
+            )}
+
+            {/* Saved Drafts History Button */}
+            {onOpenHistory && (
+              <button
+                onClick={onOpenHistory}
+                className="cursor-pointer hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-white/10 hover:border-yellow-400/40 text-slate-300 hover:text-white text-xs font-display font-bold uppercase transition-all shadow-sm"
+                title="View saved drafts"
+              >
+                <span>📜</span>
+                <span className="hidden lg:inline">SAVED DRAFTS</span>
+              </button>
             )}
 
             {/* Audio Toggle */}
@@ -150,8 +164,18 @@ export default function GameScreen({ gameState }: GameScreenProps) {
             >
               {soundOn ? "🔊" : "🔇"}
             </button>
+
+            {/* User Auth Menu */}
+            <AuthButton onOpenHistory={onOpenHistory} />
           </div>
         </div>
+
+        {/* Error Toast Banner */}
+        {errorMessage && (
+          <div className="bg-red-950/90 border-t border-b border-red-500/40 px-4 py-2 text-center text-xs font-display font-bold text-red-300 animate-in fade-in duration-200">
+            ⚠️ {errorMessage}
+          </div>
+        )}
       </header>
 
       {/* Main Drafting Stadium */}
