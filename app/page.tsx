@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import HomeScreen from "@/components/HomeScreen";
 import GameScreen from "@/components/GameScreen";
 import ResultScreen from "@/components/ResultScreen";
 import DraftHistoryModal from "@/components/DraftHistoryModal";
+import AuthErrorBanner from "@/components/AuthErrorBanner";
 import { useGameState } from "@/hooks/useGameState";
 import { calculateTeamScore } from "@/data/gameLogic";
 
@@ -22,6 +23,9 @@ export default function Page() {
 
   return (
     <>
+      <Suspense fallback={null}>
+        <AuthErrorBanner />
+      </Suspense>
       {state.phase === "home" && (
         <HomeScreen
           onStart={startGame}

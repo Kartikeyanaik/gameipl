@@ -24,8 +24,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       ]
     : [],
   session: {
-    // If MongoDB adapter is available, use database sessions; otherwise JWT
-    strategy: clientPromise ? "database" : "jwt",
+    // JWT strategy provides fast, stateless sessions and prevents database offline lockouts
+    strategy: "jwt",
   },
   callbacks: {
     async session({ session, user, token }) {

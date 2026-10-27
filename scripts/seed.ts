@@ -1,8 +1,12 @@
 import mongoose from "mongoose";
+import { loadEnvConfig } from "@next/env";
 import HISTORICAL_TEAMS from "../data/historicalTeams";
 import { TEAM_FULL_NAMES } from "../data/types";
 import { HistoricalTeamSeasonModel } from "../models/HistoricalTeamSeason";
 import { PlayerModel } from "../models/Player";
+
+// Load .env.local
+loadEnvConfig(process.cwd());
 
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/gameipl";
 

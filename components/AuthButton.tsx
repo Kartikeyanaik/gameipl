@@ -11,6 +11,7 @@ interface AuthButtonProps {
 export default function AuthButton({ onOpenHistory }: AuthButtonProps) {
   const { data: session, status } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export default function AuthButton({ onOpenHistory }: AuthButtonProps) {
               width={26}
               height={26}
               className="rounded-full ring-2 ring-yellow-400/50"
+              unoptimized
             />
           ) : (
             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center font-display font-black text-slate-950 text-xs shadow-sm">
@@ -110,9 +112,28 @@ export default function AuthButton({ onOpenHistory }: AuthButtonProps) {
   }
 
   // Unauthenticated: Google Sign In Button
+  const handleSignIn = async () => {
+    setIsSigningIn(true);
+    try {
+      await signIn("google", { callbackUrl: "/" });
+    } catch (err) {
+      console.error("Sign in failed:", err);
+      setIsSigningIn(false);
+    }
+  };
+
+  if (isSigningIn) {
+    return (
+      <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-yellow-400/50 text-yellow-300 text-xs font-display font-black tracking-wider uppercase shadow-md animate-pulse">
+        <div className="w-3.5 h-3.5 rounded-full border-2 border-yellow-400 border-t-transparent animate-spin" />
+        <span>CONNECTING TO GOOGLE...</span>
+      </div>
+    );
+  }
+
   return (
     <button
-      onClick={() => signIn("google")}
+      onClick={handleSignIn}
       className="cursor-pointer flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-white/15 hover:border-yellow-400/60 text-white hover:text-yellow-300 text-xs font-display font-black tracking-wider uppercase transition-all shadow-md hover:shadow-yellow-500/20 active:scale-95 group"
     >
       {/* Official Google 'G' Icon */}

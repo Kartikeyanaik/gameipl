@@ -86,14 +86,18 @@ export async function createNewDraft(
   };
 
   if (isMongoConfigured()) {
-    await connectMongoose();
-    // Mark any existing in_progress draft as abandoned so user has only 1 active draft
-    await DraftModel.updateMany(
-      { userId, status: "in_progress" },
-      { $set: { status: "abandoned" } }
-    );
-    const doc = await DraftModel.create(newDraftData);
-    return doc.toObject();
+    try {
+      await connectMongoose();
+      // Mark any existing in_progress draft as abandoned so user has only 1 active draft
+      await DraftModel.updateMany(
+        { userId, status: "in_progress" },
+        { $set: { status: "abandoned" } }
+      );
+      const doc = await DraftModel.create(newDraftData);
+      return doc.toObject();
+    } catch (err) {
+      console.warn("MongoDB create draft failed, falling back to demo store:", err);
+    }
   }
 
   // Demo fallback
@@ -106,14 +110,18 @@ export async function createNewDraft(
  */
 export async function getActiveDraftForUser(userId: string) {
   if (isMongoConfigured()) {
-    await connectMongoose();
-    const doc = await DraftModel.findOne({ userId, status: "in_progress" }).lean();
-    if (doc) return doc;
-  } else {
-    for (const draft of demoDraftStore.values()) {
-      if (draft.userId === userId && draft.status === "in_progress") {
-        return draft;
-      }
+    try {
+      await connectMongoose();
+      const doc = await DraftModel.findOne({ userId, status: "in_progress" }).lean();
+      if (doc) return doc;
+    } catch (err) {
+      console.warn("MongoDB getActiveDraftForUser error, falling back to demo store:", err);
+    }
+  }
+
+  for (const draft of demoDraftStore.values()) {
+    if (draft.userId === userId && draft.status === "in_progress") {
+      return draft;
     }
   }
   return null;
@@ -124,13 +132,19 @@ export async function getActiveDraftForUser(userId: string) {
  */
 export async function getDraftById(draftId: string, userId: string) {
   if (isMongoConfigured()) {
-    await connectMongoose();
-    const doc = await DraftModel.findOne({ draftId }).lean();
-    if (!doc) return null;
-    if (doc.userId !== userId) {
-      throw new Error("FORBIDDEN: You do not own this draft.");
+    try {
+      await connectMongoose();
+      const doc = await DraftModel.findOne({ draftId }).lean();
+      if (doc) {
+        if (doc.userId !== userId) {
+          throw new Error("FORBIDDEN: You do not own this draft.");
+        }
+        return doc;
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith("FORBIDDEN")) throw err;
+      console.warn("MongoDB getDraftById error, falling back to demo store:", err);
     }
-    return doc;
   }
 
   const draft = demoDraftStore.get(draftId);
@@ -227,27 +241,33 @@ export async function spinDraftOnServer(draftId: string, userId: string) {
   };
 
   if (isMongoConfigured()) {
-    await connectMongoose();
-    const updated = await DraftModel.findOneAndUpdate(
-      { draftId, userId, round: draft.round, status: "in_progress" },
-      {
-        $set: {
-          currentTeamSeasonId: selectedTeam.id,
-          currentSquad: squadDTO,
+    try {
+      await connectMongoose();
+      const updated = await DraftModel.findOneAndUpdate(
+        { draftId, userId, round: draft.round, status: "in_progress" },
+        {
+          $set: {
+            currentTeamSeasonId: selectedTeam.id,
+            currentSquad: squadDTO,
+          },
+          $addToSet: { usedTeamSeasonIds: selectedTeam.id },
+          $push: { draftHistory: historyEvent },
         },
-        $addToSet: { usedTeamSeasonIds: selectedTeam.id },
-        $push: { draftHistory: historyEvent },
-      },
-      { new: true }
-    ).lean();
+        { new: true }
+      ).lean();
 
-    return {
-      draft: updated,
-      teamSeasonId: selectedTeam.id,
-      team: selectedTeam.team,
-      season: selectedTeam.season,
-      squad: squadDTO,
-    };
+      if (updated) {
+        return {
+          draft: updated,
+          teamSeasonId: selectedTeam.id,
+          team: selectedTeam.team,
+          season: selectedTeam.season,
+          squad: squadDTO,
+        };
+      }
+    } catch (err) {
+      console.warn("MongoDB spinDraft error, falling back to demo store:", err);
+    }
   }
 
   // Demo fallback
@@ -405,18 +425,21 @@ export async function pickPlayerOnServer(
   };
 
   if (isMongoConfigured()) {
-    await connectMongoose();
-    // Atomic update guarded by current round
-    const updated = await DraftModel.findOneAndUpdate(
-      { draftId, userId, round: draft.round, status: "in_progress" },
-      updateData,
-      { new: true }
-    ).lean();
+    try {
+      await connectMongoose();
+      // Atomic update guarded by current round
+      const updated = await DraftModel.findOneAndUpdate(
+        { draftId, userId, round: draft.round, status: "in_progress" },
+        updateData,
+        { new: true }
+      ).lean();
 
-    if (!updated) {
-      throw new Error("Concurrent modification detected. Please refresh and try again.");
+      if (updated) {
+        return updated;
+      }
+    } catch (err) {
+      console.warn("MongoDB pickPlayer error, falling back to demo store:", err);
     }
-    return updated;
   }
 
   // Demo fallback
@@ -443,12 +466,16 @@ export async function pickPlayerOnServer(
  */
 export async function getUserCompletedDrafts(userId: string) {
   if (isMongoConfigured()) {
-    await connectMongoose();
-    const docs = await DraftModel.find({ userId, status: "completed" })
-      .sort({ updatedAt: -1 })
-      .limit(20)
-      .lean();
-    return docs;
+    try {
+      await connectMongoose();
+      const docs = await DraftModel.find({ userId, status: "completed" })
+        .sort({ updatedAt: -1 })
+        .limit(20)
+        .lean();
+      if (docs) return docs;
+    } catch (err) {
+      console.warn("MongoDB getUserCompletedDrafts error, falling back to demo store:", err);
+    }
   }
 
   const userDrafts: IDraft[] = [];
@@ -465,9 +492,13 @@ export async function getUserCompletedDrafts(userId: string) {
  */
 export async function deleteDraftOnServer(draftId: string, userId: string) {
   if (isMongoConfigured()) {
-    await connectMongoose();
-    const result = await DraftModel.deleteOne({ draftId, userId });
-    return result.deletedCount > 0;
+    try {
+      await connectMongoose();
+      const result = await DraftModel.deleteOne({ draftId, userId });
+      return result.deletedCount > 0;
+    } catch (err) {
+      console.warn("MongoDB deleteDraft error, falling back to demo store:", err);
+    }
   }
 
   const draft = demoDraftStore.get(draftId);

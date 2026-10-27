@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { isValidMongoUri } from "./mongodb-client";
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -26,7 +27,7 @@ if (!global.mongooseCache) {
  * Returns null if MONGODB_URI is not configured (allowing graceful demo mode).
  */
 export async function connectMongoose(): Promise<typeof mongoose | null> {
-  if (!MONGODB_URI) {
+  if (!isValidMongoUri(MONGODB_URI)) {
     return null;
   }
 
@@ -42,7 +43,7 @@ export async function connectMongoose(): Promise<typeof mongoose | null> {
     };
 
     cached.promise = mongoose
-      .connect(MONGODB_URI, opts)
+      .connect(MONGODB_URI!, opts)
       .then((m) => {
         return m;
       })
@@ -63,5 +64,6 @@ export async function connectMongoose(): Promise<typeof mongoose | null> {
 }
 
 export function isMongoConfigured(): boolean {
-  return Boolean(process.env.MONGODB_URI);
+  return isValidMongoUri(process.env.MONGODB_URI);
 }
+
